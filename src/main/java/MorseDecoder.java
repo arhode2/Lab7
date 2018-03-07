@@ -55,6 +55,12 @@ public class MorseDecoder {
         for (int binIndex = 0; binIndex < totalBinCount; binIndex++) {
             // Get the right number of samples from the inputFile
             // Sum all the samples together and store them in the returnBuffer
+            inputFile.readFrames(sampleBuffer, BIN_SIZE);
+            int sampleSum = 0;
+            for (int sampleIndex = 0; sampleIndex < sampleBuffer.length; sampleIndex++) {
+                sampleSum += sampleBuffer[sampleIndex];
+            }
+            returnBuffer[binIndex] = Math.abs(sampleSum);
         }
         return returnBuffer;
     }
@@ -86,8 +92,36 @@ public class MorseDecoder {
         // else if ispower and not waspower
         // else if issilence and wassilence
         // else if issilence and not wassilence
-
-        return "";
+        int dashCount = 0;
+        int silenceCount = 0;
+        int dotCount = 0;
+        char[] futureMorse = new char[powerMeasurements.length];
+        for (int i = 0; i < powerMeasurements.length; i++) {
+            for (int j = 0; j < DASH_BIN_COUNT && i + j < powerMeasurements.length; j++) {
+                if (powerMeasurements[(int) (i + j)] < POWER_THRESHOLD) {
+                    if (j == 1 && powerMeasurements[i] > POWER_THRESHOLD) {
+                        futureMorse[i] = '.';
+                        dotCount++;
+                        break;
+                    }
+                    if (j == DASH_BIN_COUNT - 1) {
+                        futureMorse[i] = ' ';
+                        silenceCount++;
+                        break;
+                    }
+                }
+                if (j == DASH_BIN_COUNT - 1 && powerMeasurements[(int) (i + j)] > POWER_THRESHOLD) {
+                    futureMorse[i] = '-';
+                    dashCount++;
+                    i += DASH_BIN_COUNT;
+                }
+            }
+        }
+        char[] trimmedMorse = new char[dotCount + dashCount + silenceCount];
+        for (int i = 0; i < trimmedMorse.length; i++) {
+            trimmedMorse[i] = futureMorse[i];
+        }
+        return trimmedMorse.toString();
     }
 
     /**
